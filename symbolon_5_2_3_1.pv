@@ -1,0 +1,180 @@
+
+
+(*
+ProVerif script to verify authentication properties of Symbolon
+
+For a description of the protocol, see our paper
+Symbolon: Privacy-preserving and Flexible Multi-device-based User Authentication
+*)
+
+
+(* public channel *)
+free c: channel.
+
+(* private channels for sending secrets from the dealer to the n and the n' of them that are consentful authenticators *)
+free pc0: channel [private].
+free pc1: channel [private].
+free pc2: channel [private].
+free pc3: channel [private].
+free pc4: channel [private].
+free pcc0: channel [private].
+free pcc1: channel [private].
+
+(* channel for communicating the public key to the relying party *)
+free pcRP: channel [private].
+
+(* some free names available to the attacker *)
+free name0: bitstring.
+free name1: bitstring.
+free name2: bitstring.
+free name3: bitstring.
+free name4: bitstring.
+free name_c0: bitstring.
+free name_c1: bitstring.
+
+event authorised(bitstring). (* the bitstring challenge has been authorised, i.e. signed by the required cohort of signers *)
+event signed(channel, bitstring). (* the bitstring challenge has been signed by a regular signer denoted by the private channel pc *)
+event csigned(channel, bitstring). (* the bitstring challenge has been signed by a consentful signer denoted by the private channel pc *)
+
+(*
+There are 5 regular key shares.
+There are 2 'consentful' key shares.
+A valid signature is made using:
+- 3 of the 5 key regular shares, and also
+- 1 of the 2 consent key shares
+*)
+
+type secretkey. (* secret key for authentication *)
+type publickey. (* public key corresponding to secret key *)
+type kshare.        (* share of secret key *)
+type ckshare.        (* consentful share of secret key *)
+
+fun pk(secretkey):publickey.  (* derive public key from a secret key *)
+fun ksh0(secretkey): kshare.  (* derive the key shares from the secret key *)
+fun ksh1(secretkey): kshare.  (* derive the key shares from the secret key *)
+fun ksh2(secretkey): kshare.  (* derive the key shares from the secret key *)
+fun ksh3(secretkey): kshare.  (* derive the key shares from the secret key *)
+fun ksh4(secretkey): kshare.  (* derive the key shares from the secret key *)
+fun cksh0(secretkey): ckshare.  (* derive the consentful key shares from the secret key *)
+fun cksh1(secretkey): ckshare.  (* derive the consentful key shares from the secret key *)
+
+
+(* combine is the function that makes a single signature out of partial signatures *)
+(* combine has arity 4 *)
+fun combine(bitstring, bitstring, bitstring,  bitstring): bitstring.
+
+(* sign with a key share, and with a consentful key share *)
+fun sign(kshare, bitstring): bitstring.
+fun csign(ckshare,bitstring): bitstring.
+
+(* a valid combination of signatures made with shares can be verified.
+'Valid' means 1 consentful signature(s) and 3 ordinary ones *)
+reduc
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh0(sk),m), sign(ksh1(sk),m), sign(ksh2(sk),m), csign(cksh0(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh0(sk),m), sign(ksh1(sk),m), sign(ksh2(sk),m), csign(cksh1(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh0(sk),m), sign(ksh1(sk),m), sign(ksh3(sk),m), csign(cksh0(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh0(sk),m), sign(ksh1(sk),m), sign(ksh3(sk),m), csign(cksh1(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh0(sk),m), sign(ksh1(sk),m), sign(ksh4(sk),m), csign(cksh0(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh0(sk),m), sign(ksh1(sk),m), sign(ksh4(sk),m), csign(cksh1(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh0(sk),m), sign(ksh2(sk),m), sign(ksh3(sk),m), csign(cksh0(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh0(sk),m), sign(ksh2(sk),m), sign(ksh3(sk),m), csign(cksh1(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh0(sk),m), sign(ksh2(sk),m), sign(ksh4(sk),m), csign(cksh0(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh0(sk),m), sign(ksh2(sk),m), sign(ksh4(sk),m), csign(cksh1(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh0(sk),m), sign(ksh3(sk),m), sign(ksh4(sk),m), csign(cksh0(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh0(sk),m), sign(ksh3(sk),m), sign(ksh4(sk),m), csign(cksh1(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh1(sk),m), sign(ksh2(sk),m), sign(ksh3(sk),m), csign(cksh0(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh1(sk),m), sign(ksh2(sk),m), sign(ksh3(sk),m), csign(cksh1(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh1(sk),m), sign(ksh2(sk),m), sign(ksh4(sk),m), csign(cksh0(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh1(sk),m), sign(ksh2(sk),m), sign(ksh4(sk),m), csign(cksh1(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh1(sk),m), sign(ksh3(sk),m), sign(ksh4(sk),m), csign(cksh0(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh1(sk),m), sign(ksh3(sk),m), sign(ksh4(sk),m), csign(cksh1(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh2(sk),m), sign(ksh3(sk),m), sign(ksh4(sk),m), csign(cksh0(sk),m)) ) = true;
+forall sk:secretkey, m:bitstring;  verify(pk(sk), m, combine( sign(ksh2(sk),m), sign(ksh3(sk),m), sign(ksh4(sk),m), csign(cksh1(sk),m)) ) = true.
+
+
+
+(* Properties to be checked
+=========================== *)
+
+(* If an access has been authorised, then some 3 of the 5 regular signers must have signed it *)
+
+query chal:bitstring; event(authorised(chal)) ==> (
+ ( event(signed(pc0, chal)) && event(signed(pc1, chal)) && event(signed(pc2, chal)) ) ||
+ ( event(signed(pc0, chal)) && event(signed(pc1, chal)) && event(signed(pc3, chal)) ) ||
+ ( event(signed(pc0, chal)) && event(signed(pc1, chal)) && event(signed(pc4, chal)) ) ||
+ ( event(signed(pc0, chal)) && event(signed(pc2, chal)) && event(signed(pc3, chal)) ) ||
+ ( event(signed(pc0, chal)) && event(signed(pc2, chal)) && event(signed(pc4, chal)) ) ||
+ ( event(signed(pc0, chal)) && event(signed(pc3, chal)) && event(signed(pc4, chal)) ) ||
+ ( event(signed(pc1, chal)) && event(signed(pc2, chal)) && event(signed(pc3, chal)) ) ||
+ ( event(signed(pc1, chal)) && event(signed(pc2, chal)) && event(signed(pc4, chal)) ) ||
+ ( event(signed(pc1, chal)) && event(signed(pc3, chal)) && event(signed(pc4, chal)) ) ||
+ ( event(signed(pc2, chal)) && event(signed(pc3, chal)) && event(signed(pc4, chal)) ) ).
+
+(* If an access has been authorised, then 1 of the 2 consentful signers must have signed it *)
+
+query chal:bitstring; event(authorised(chal)) ==> (
+ ( event(csigned(pcc0, chal)) ) ||
+ ( event(csigned(pcc1, chal)) ) ).
+
+(* Reachability check *)
+query chal:bitstring; event(authorised(chal)).
+
+
+(* Definition of the protocol participants *)
+
+let Dealer =
+     new sk: secretkey;
+     out(c, pk(sk));
+     (* out(c, ksh1(sk)); *)
+     (* uncomment line above to see an attack *)
+     (  out(pcRP, pk(sk)) |
+        (* let the attacker control whether a signer is enabled or not *)
+        ( in(c, =name0  ); out(pc0, ksh0(sk))  )|
+        ( in(c, =name1  ); out(pc1, ksh1(sk))  )|
+        ( in(c, =name2  ); out(pc2, ksh2(sk))  )|
+        ( in(c, =name3  ); out(pc3, ksh3(sk))  )|
+        ( in(c, =name4  ); out(pc4, ksh4(sk))  )|
+        ( in(c, =name_c0); out(pcc0, cksh0(sk)) )|
+        ( in(c, =name_c1); out(pcc1, cksh1(sk)) )|
+        0 ).
+
+(* a regular signer has a regular key share *)
+let Signer(pc: channel) =
+     in(pc, k:kshare );
+     in(c, mess:bitstring);
+     let s = sign(k, mess) in
+     event signed(pc, mess);
+     out(c, s).
+
+(* a consentful signer has both a regular key share and a consentful key share *)
+let ConsentfulSigner(pc: channel, pcc:channel) =
+     in(pc, k:kshare);
+     in(pcc, kc:ckshare);
+     in(c, mess:bitstring);
+     let s = sign(k, mess) in
+     let sc = csign(kc, mess) in
+     event signed(pc, mess);
+     event csigned(pcc, mess);
+     out(c, s);
+     out(c, sc).
+
+
+let RelyingParty =
+     in(pcRP, pubkey:publickey);
+     new challenge: bitstring;
+     out(c, challenge);
+     in(c, s:bitstring);
+     if verify(pubkey, challenge, s) = true then
+     event authorised(challenge).
+  
+
+process
+     (!Dealer) | (!RelyingParty) | 
+     (* There are 2 consentful signers, and 3 ordinary signers *) 
+     (!ConsentfulSigner(pc0, pcc0)) | 
+     (!ConsentfulSigner(pc1, pcc1)) | 
+     (!Signer(pc2)) | 
+     (!Signer(pc3)) | 
+     (!Signer(pc4)) | 
+     0
+
